@@ -1,40 +1,42 @@
 /**
-* Copyright (c) 2020 Bosch Sensortec GmbH. All rights reserved.
-*
-* BSD-3-Clause
-*
-* Redistribution and use in source and binary forms, with or without
-* modification, are permitted provided that the following conditions are met:
-*
-* 1. Redistributions of source code must retain the above copyright
-*    notice, this list of conditions and the following disclaimer.
-*
-* 2. Redistributions in binary form must reproduce the above copyright
-*    notice, this list of conditions and the following disclaimer in the
-*    documentation and/or other materials provided with the distribution.
-*
-* 3. Neither the name of the copyright holder nor the names of its
-*    contributors may be used to endorse or promote products derived from
-*    this software without specific prior written permission.
-*
-* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-* COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-* (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-* SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-* HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-* STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
-* IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-* POSSIBILITY OF SUCH DAMAGE.
-*
-* @file	bma423.c
-* @date	2020-01-10
-* @version	v2.12.8
-*
-*//*! \file bma423.c
+ * Copyright (c) 2020 Bosch Sensortec GmbH. All rights reserved.
+ *
+ * BSD-3-Clause
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+ * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ * @file       bma423.c
+ * @date       2020-05-08
+ * @version    V2.14.13
+ *
+ */
+
+/*! \file bma423.c
  * \brief Sensor Driver for BMA423 sensor
  */
 
@@ -383,11 +385,11 @@ const uint8_t bma423_config_file[] = {
  * configuration data
  * @param[in] dev : Structure instance of bma4_dev.
  *
- * @return Result of API execution status
- * @retval 0 -> Success
- * @retval Any positive value mentioned in ERROR CODES -> Fail
+ *  @return Result of API execution status
+ *  @retval 0 -> Success
+ *  @retval < 0 -> Fail
  */
-static uint16_t feature_enable(uint8_t feature, uint8_t len, uint8_t *feature_config, struct bma4_dev *dev);
+static int8_t feature_enable(uint8_t feature, uint8_t len, uint8_t *feature_config, struct bma4_dev *dev);
 
 /*!
  * @brief This API disables the features of sensor.
@@ -399,11 +401,11 @@ static uint16_t feature_enable(uint8_t feature, uint8_t len, uint8_t *feature_co
  * configuration data
  * @param[in] dev : Structure instance of bma4_dev.
  *
- * @return Result of API execution status
- * @retval 0 -> Success
- * @retval Any positive value mentioned in ERROR CODES -> Fail
+ *  @return Result of API execution status
+ *  @retval 0 -> Success
+ *  @retval < 0 -> Fail
  */
-static uint16_t feature_disable(uint8_t feature, uint8_t len, uint8_t *feature_config, struct bma4_dev *dev);
+static int8_t feature_disable(uint8_t feature, uint8_t len, uint8_t *feature_config, struct bma4_dev *dev);
 
 /*!
  * @brief This API update the settings of step counter into write array.
@@ -441,9 +443,9 @@ static void extract_stepcounter_parameter(struct bma423_stepcounter_settings *se
  * Call this API before using all other APIs.
  * This API reads the chip-id of the sensor and sets the resolution.
  */
-uint16_t bma423_init(struct bma4_dev *dev)
+int8_t bma423_init(struct bma4_dev *dev)
 {
-    uint16_t rslt;
+    int8_t rslt;
 
     rslt = bma4_init(dev);
     if (rslt == BMA4_OK)
@@ -452,12 +454,14 @@ uint16_t bma423_init(struct bma4_dev *dev)
         {
             /* Resolution of BMA423 sensor is 12 bit */
             dev->resolution = 12;
+
             dev->feature_len = BMA423_FEATURE_SIZE;
-            dev->variant = BMA42X_VARIANT;
+
+            dev->config_size = sizeof(bma423_config_file);
         }
         else
         {
-            rslt |= BMA4_E_INVALID_SENSOR;
+            rslt = BMA4_E_INVALID_SENSOR;
         }
     }
 
@@ -468,9 +472,9 @@ uint16_t bma423_init(struct bma4_dev *dev)
  * @brief This API is used to upload the configuration file to enable the
  * features of the sensor.
  */
-uint16_t bma423_write_config_file(struct bma4_dev *dev)
+int8_t bma423_write_config_file(struct bma4_dev *dev)
 {
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
 
     if (dev != NULL)
     {
@@ -512,11 +516,11 @@ uint16_t bma423_write_config_file(struct bma4_dev *dev)
 /*!
  * @brief This API is used to get the configuration id of the sensor.
  */
-uint16_t bma423_get_config_id(uint16_t *config_id, struct bma4_dev *dev)
+int8_t bma423_get_config_id(uint16_t *config_id, struct bma4_dev *dev)
 {
     uint8_t feature_config[BMA423_FEATURE_SIZE] = { 0 };
     uint8_t index = BMA423_CONFIG_ID_OFFSET;
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
     uint16_t config_id_lsb = 0;
     uint16_t config_id_msb = 0;
 
@@ -549,9 +553,9 @@ uint16_t bma423_get_config_id(uint16_t *config_id, struct bma4_dev *dev)
  * @brief This API sets/un-sets the user provided interrupt to either interrupt
  * pin1 or pin2 in the sensor.
  */
-uint16_t bma423_map_interrupt(uint8_t int_line, uint16_t int_map, uint8_t enable, struct bma4_dev *dev)
+int8_t bma423_map_interrupt(uint8_t int_line, uint16_t int_map, uint8_t enable, struct bma4_dev *dev)
 {
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
 
     if (dev != NULL)
     {
@@ -583,9 +587,9 @@ uint16_t bma423_map_interrupt(uint8_t int_line, uint16_t int_map, uint8_t enable
 /*!
  * @brief This API reads the bma423 interrupt status from the sensor.
  */
-uint16_t bma423_read_int_status(uint16_t *int_status, struct bma4_dev *dev)
+int8_t bma423_read_int_status(uint16_t *int_status, struct bma4_dev *dev)
 {
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
 
     if (dev != NULL)
     {
@@ -610,10 +614,10 @@ uint16_t bma423_read_int_status(uint16_t *int_status, struct bma4_dev *dev)
 /*!
  * @brief This API enables/disables the features of the sensor.
  */
-uint16_t bma423_feature_enable(uint8_t feature, uint8_t enable, struct bma4_dev *dev)
+int8_t bma423_feature_enable(uint8_t feature, uint8_t enable, struct bma4_dev *dev)
 {
     uint8_t feature_config[BMA423_FEATURE_SIZE] = { 0 };
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
     uint8_t len = BMA423_FEATURE_SIZE;
 
     if (dev != NULL)
@@ -627,12 +631,12 @@ uint16_t bma423_feature_enable(uint8_t feature, uint8_t enable, struct bma4_dev 
                 if (enable == TRUE)
                 {
                     /* Enables the feature */
-                    rslt |= feature_enable(feature, len, feature_config, dev);
+                    rslt = feature_enable(feature, len, feature_config, dev);
                 }
                 else
                 {
                     /* Disables the feature */
-                    rslt |= feature_disable(feature, len, feature_config, dev);
+                    rslt = feature_disable(feature, len, feature_config, dev);
                 }
             }
         }
@@ -652,11 +656,11 @@ uint16_t bma423_feature_enable(uint8_t feature, uint8_t enable, struct bma4_dev 
 /*!
  * @brief This API performs x, y and z axis remapping in the sensor.
  */
-uint16_t bma423_set_remap_axes(const struct bma423_axes_remap *remap_data, struct bma4_dev *dev)
+int8_t bma423_set_remap_axes(const struct bma423_axes_remap *remap_data, struct bma4_dev *dev)
 {
     uint8_t feature_config[BMA423_FEATURE_SIZE] = { 0 };
     uint8_t index = BMA423_AXES_REMAP_OFFSET;
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
     uint8_t x_axis = 0;
     uint8_t x_axis_sign = 0;
     uint8_t y_axis = 0;
@@ -677,7 +681,7 @@ uint16_t bma423_set_remap_axes(const struct bma423_axes_remap *remap_data, struc
                 z_axis = (remap_data->z_axis << 6) & BMA423_Z_AXIS_MASK;
                 feature_config[index] = x_axis | x_axis_sign | y_axis | y_axis_sign | z_axis;
                 feature_config[index + 1] = remap_data->z_axis_sign & BMA423_Z_AXIS_SIGN_MASK;
-                rslt |= bma4_write_regs(BMA4_FEATURE_CONFIG_ADDR, feature_config, BMA423_FEATURE_SIZE, dev);
+                rslt = bma4_write_regs(BMA4_FEATURE_CONFIG_ADDR, feature_config, BMA423_FEATURE_SIZE, dev);
             }
         }
         else
@@ -696,11 +700,11 @@ uint16_t bma423_set_remap_axes(const struct bma423_axes_remap *remap_data, struc
 /*!
  * @brief This API reads the x, y and z axis remap data from the sensor.
  */
-uint16_t bma423_get_remap_axes(struct bma423_axes_remap *remap_data, struct bma4_dev *dev)
+int8_t bma423_get_remap_axes(struct bma423_axes_remap *remap_data, struct bma4_dev *dev)
 {
     uint8_t feature_config[BMA423_FEATURE_SIZE] = { 0 };
     uint8_t index = BMA423_AXES_REMAP_OFFSET;
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
 
     if (dev != NULL)
     {
@@ -734,10 +738,10 @@ uint16_t bma423_get_remap_axes(struct bma423_axes_remap *remap_data, struct bma4
  * @brief This API sets the configuration of any-motion feature in the sensor.
  * This API enables/disables the any-motion feature according to the axis set.
  */
-uint16_t bma423_set_any_mot_config(const struct bma423_any_no_mot_config *any_mot, struct bma4_dev *dev)
+int8_t bma423_set_any_mot_config(const struct bma423_any_no_mot_config *any_mot, struct bma4_dev *dev)
 {
     /* Variable to define error */
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
 
     /* Initialize configuration file */
     uint8_t feature_config[BMA423_FEATURE_SIZE] = { 0 };
@@ -799,10 +803,10 @@ uint16_t bma423_set_any_mot_config(const struct bma423_any_no_mot_config *any_mo
  * @brief This API gets the configuration of any-motion feature from the
  * sensor.
  */
-uint16_t bma423_get_any_mot_config(struct bma423_any_no_mot_config *any_mot, struct bma4_dev *dev)
+int8_t bma423_get_any_mot_config(struct bma423_any_no_mot_config *any_mot, struct bma4_dev *dev)
 {
     /* Variable to define error */
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
 
     /* Initialize configuration file */
     uint8_t feature_config[BMA423_FEATURE_SIZE] = { 0 };
@@ -859,10 +863,10 @@ uint16_t bma423_get_any_mot_config(struct bma423_any_no_mot_config *any_mot, str
  * @brief This API sets the configuration of no-motion feature in the sensor.
  * This API enables/disables the no-motion feature according to the axis set.
  */
-uint16_t bma423_set_no_mot_config(const struct bma423_any_no_mot_config *no_mot, struct bma4_dev *dev)
+int8_t bma423_set_no_mot_config(const struct bma423_any_no_mot_config *no_mot, struct bma4_dev *dev)
 {
     /* Variable to define error */
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
 
     /* Initialize configuration file */
     uint8_t feature_config[BMA423_FEATURE_SIZE] = { 0 };
@@ -924,10 +928,10 @@ uint16_t bma423_set_no_mot_config(const struct bma423_any_no_mot_config *no_mot,
  * @brief This API gets the configuration of no-motion feature from the
  * sensor.
  */
-uint16_t bma423_get_no_mot_config(struct bma423_any_no_mot_config *no_mot, struct bma4_dev *dev)
+int8_t bma423_get_no_mot_config(struct bma423_any_no_mot_config *no_mot, struct bma4_dev *dev)
 {
     /* Variable to define error */
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
 
     /* Initialize configuration file */
     uint8_t feature_config[BMA423_FEATURE_SIZE] = { 0 };
@@ -983,10 +987,10 @@ uint16_t bma423_get_no_mot_config(struct bma423_any_no_mot_config *no_mot, struc
 /*!
  * @brief This API enables or disables the step detector feature in the sensor.
  */
-uint16_t bma423_step_detector_enable(uint8_t enable, struct bma4_dev *dev)
+int8_t bma423_step_detector_enable(uint8_t enable, struct bma4_dev *dev)
 {
     uint8_t feature_config[BMA423_FEATURE_SIZE] = { 0 };
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
 
     /* Step detector enable bit position is 1 byte ahead of the base address */
     uint8_t index = BMA423_STEP_CNTR_OFFSET + 1;
@@ -999,7 +1003,7 @@ uint16_t bma423_step_detector_enable(uint8_t enable, struct bma4_dev *dev)
             if (rslt == BMA4_OK)
             {
                 feature_config[index] = BMA4_SET_BITSLICE(feature_config[index], BMA423_STEP_DETECTOR_EN, enable);
-                rslt |= bma4_write_regs(BMA4_FEATURE_CONFIG_ADDR, feature_config, BMA423_FEATURE_SIZE, dev);
+                rslt = bma4_write_regs(BMA4_FEATURE_CONFIG_ADDR, feature_config, BMA423_FEATURE_SIZE, dev);
             }
         }
         else
@@ -1019,13 +1023,13 @@ uint16_t bma423_step_detector_enable(uint8_t enable, struct bma4_dev *dev)
  * @brief This API sets the watermark level for step counter interrupt in the
  * sensor.
  */
-uint16_t bma423_step_counter_set_watermark(uint16_t step_counter_wm, struct bma4_dev *dev)
+int8_t bma423_step_counter_set_watermark(uint16_t step_counter_wm, struct bma4_dev *dev)
 {
     uint8_t feature_config[BMA423_FEATURE_SIZE] = { 0 };
     uint8_t index = BMA423_STEP_CNTR_OFFSET;
     uint16_t wm_lsb = 0;
     uint16_t wm_msb = 0;
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
     uint16_t data = 0;
 
     if (dev != NULL)
@@ -1053,7 +1057,7 @@ uint16_t bma423_step_counter_set_watermark(uint16_t step_counter_wm, struct bma4
                 /* Writes stepcounter watermark settings
                  * in the sensor
                  */
-                rslt |= bma4_write_regs(BMA4_FEATURE_CONFIG_ADDR, feature_config, BMA423_FEATURE_SIZE, dev);
+                rslt = bma4_write_regs(BMA4_FEATURE_CONFIG_ADDR, feature_config, BMA423_FEATURE_SIZE, dev);
             }
         }
         else
@@ -1073,13 +1077,13 @@ uint16_t bma423_step_counter_set_watermark(uint16_t step_counter_wm, struct bma4
  * @brief This API gets the water mark level set for step counter interrupt
  * in the sensor.
  */
-uint16_t bma423_step_counter_get_watermark(uint16_t *step_counter_wm, struct bma4_dev *dev)
+int8_t bma423_step_counter_get_watermark(uint16_t *step_counter_wm, struct bma4_dev *dev)
 {
     uint8_t feature_config[BMA423_FEATURE_SIZE] = { 0 };
     uint8_t index = BMA423_STEP_CNTR_OFFSET;
     uint16_t wm_lsb = 0;
     uint16_t wm_msb = 0;
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
     uint16_t data = 0;
 
     if (dev != NULL)
@@ -1111,13 +1115,13 @@ uint16_t bma423_step_counter_get_watermark(uint16_t *step_counter_wm, struct bma
 /*!
  * @brief This API resets the counted steps of step counter.
  */
-uint16_t bma423_reset_step_counter(struct bma4_dev *dev)
+int8_t bma423_reset_step_counter(struct bma4_dev *dev)
 {
     uint8_t feature_config[BMA423_FEATURE_SIZE] = { 0 };
 
     /* Reset bit is 1 byte ahead of base address */
     uint8_t index = BMA423_STEP_CNTR_OFFSET + 1;
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
 
     if (dev != NULL)
     {
@@ -1127,7 +1131,7 @@ uint16_t bma423_reset_step_counter(struct bma4_dev *dev)
             if (rslt == BMA4_OK)
             {
                 feature_config[index] = BMA4_SET_BITSLICE(feature_config[index], BMA423_STEP_CNTR_RST, 1);
-                rslt |= bma4_write_regs(BMA4_FEATURE_CONFIG_ADDR, feature_config, BMA423_FEATURE_SIZE, dev);
+                rslt = bma4_write_regs(BMA4_FEATURE_CONFIG_ADDR, feature_config, BMA423_FEATURE_SIZE, dev);
             }
         }
         else
@@ -1147,10 +1151,10 @@ uint16_t bma423_reset_step_counter(struct bma4_dev *dev)
  * @brief This API gets the number of counted steps of the step counter
  * feature from the sensor.
  */
-uint16_t bma423_step_counter_output(uint32_t *step_count, struct bma4_dev *dev)
+int8_t bma423_step_counter_output(uint32_t *step_count, struct bma4_dev *dev)
 {
     uint8_t data[BMA423_STEP_CNTR_DATA_SIZE] = { 0 };
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
     uint32_t step_count_0 = 0;
     uint32_t step_count_1 = 0;
     uint32_t step_count_2 = 0;
@@ -1189,10 +1193,10 @@ uint16_t bma423_step_counter_output(uint32_t *step_count, struct bma4_dev *dev)
 /*!
  * @brief This API gets the output for activity feature.
  */
-uint16_t bma423_activity_output(uint8_t *activity, struct bma4_dev *dev)
+int8_t bma423_activity_output(uint8_t *activity, struct bma4_dev *dev)
 {
     uint8_t data = 0;
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
 
     if (dev != NULL)
     {
@@ -1222,11 +1226,11 @@ uint16_t bma423_activity_output(uint8_t *activity, struct bma4_dev *dev)
  * @brief This API gets the parameter1 to parameter7 settings of the step
  * counter feature.
  */
-uint16_t bma423_stepcounter_get_parameter(struct bma423_stepcounter_settings *setting, struct bma4_dev *dev)
+int8_t bma423_stepcounter_get_parameter(struct bma423_stepcounter_settings *setting, struct bma4_dev *dev)
 {
     uint8_t feature_config[BMA423_FEATURE_SIZE] = { 0 };
     uint16_t *data_p = (uint16_t *)(void *)feature_config;
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
 
     if (dev != NULL)
     {
@@ -1257,11 +1261,11 @@ uint16_t bma423_stepcounter_get_parameter(struct bma423_stepcounter_settings *se
  * @brief This API sets the parameter1 to parameter7 settings of the step
  * counter feature in the sensor.
  */
-uint16_t bma423_stepcounter_set_parameter(const struct bma423_stepcounter_settings *setting, struct bma4_dev *dev)
+int8_t bma423_stepcounter_set_parameter(const struct bma423_stepcounter_settings *setting, struct bma4_dev *dev)
 {
     uint8_t feature_config[BMA423_FEATURE_SIZE] = { 0 };
     uint8_t index = BMA423_STEP_CNTR_PARAM_OFFSET;
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
 
     if (dev != NULL)
     {
@@ -1294,11 +1298,11 @@ uint16_t bma423_stepcounter_set_parameter(const struct bma423_stepcounter_settin
 /*!
  * @brief This API sets the sensitivity of single tap feature in the sensor.
  */
-uint16_t bma423_single_tap_set_sensitivity(uint8_t sensitivity, struct bma4_dev *dev)
+int8_t bma423_single_tap_set_sensitivity(uint8_t sensitivity, struct bma4_dev *dev)
 {
     uint8_t feature_config[BMA423_FEATURE_SIZE] = { 0 };
     uint8_t index = BMA423_SINGLE_TAP_OFFSET;
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
 
     if (dev != NULL)
     {
@@ -1310,7 +1314,7 @@ uint16_t bma423_single_tap_set_sensitivity(uint8_t sensitivity, struct bma4_dev 
                 feature_config[index] = BMA4_SET_BITSLICE(feature_config[index], BMA423_TAP_SENS, sensitivity);
 
                 /* Writes sensitivity settings in the sensor */
-                rslt |= bma4_write_regs(BMA4_FEATURE_CONFIG_ADDR, feature_config, BMA423_FEATURE_SIZE, dev);
+                rslt = bma4_write_regs(BMA4_FEATURE_CONFIG_ADDR, feature_config, BMA423_FEATURE_SIZE, dev);
             }
         }
         else
@@ -1329,11 +1333,11 @@ uint16_t bma423_single_tap_set_sensitivity(uint8_t sensitivity, struct bma4_dev 
 /*!
  * @brief This API sets the sensitivity of double tap feature in the sensor.
  */
-uint16_t bma423_double_tap_set_sensitivity(uint8_t sensitivity, struct bma4_dev *dev)
+int8_t bma423_double_tap_set_sensitivity(uint8_t sensitivity, struct bma4_dev *dev)
 {
     uint8_t feature_config[BMA423_FEATURE_SIZE] = { 0 };
     uint8_t index = BMA423_DOUBLE_TAP_OFFSET;
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
 
     if (dev != NULL)
     {
@@ -1345,7 +1349,7 @@ uint16_t bma423_double_tap_set_sensitivity(uint8_t sensitivity, struct bma4_dev 
                 feature_config[index] = BMA4_SET_BITSLICE(feature_config[index], BMA423_TAP_SENS, sensitivity);
 
                 /* Writes sensitivity settings in the sensor */
-                rslt |= bma4_write_regs(BMA4_FEATURE_CONFIG_ADDR, feature_config, BMA423_FEATURE_SIZE, dev);
+                rslt = bma4_write_regs(BMA4_FEATURE_CONFIG_ADDR, feature_config, BMA423_FEATURE_SIZE, dev);
             }
         }
         else
@@ -1364,11 +1368,11 @@ uint16_t bma423_double_tap_set_sensitivity(uint8_t sensitivity, struct bma4_dev 
 /*!
  *  @brief This API gets the sensitivity of single tap feature in the sensor
  */
-uint16_t bma423_single_tap_get_sensitivity(uint8_t *sensitivity, struct bma4_dev *dev)
+int8_t bma423_single_tap_get_sensitivity(uint8_t *sensitivity, struct bma4_dev *dev)
 {
     uint8_t feature_config[BMA423_FEATURE_SIZE] = { 0 };
     uint8_t index = BMA423_SINGLE_TAP_OFFSET;
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
 
     if (dev != NULL)
     {
@@ -1397,11 +1401,11 @@ uint16_t bma423_single_tap_get_sensitivity(uint8_t *sensitivity, struct bma4_dev
 /*!
  *  @brief This API gets the sensitivity of double tap feature in the sensor
  */
-uint16_t bma423_double_tap_get_sensitivity(uint8_t *sensitivity, struct bma4_dev *dev)
+int8_t bma423_double_tap_get_sensitivity(uint8_t *sensitivity, struct bma4_dev *dev)
 {
     uint8_t feature_config[BMA423_FEATURE_SIZE] = { 0 };
     uint8_t index = BMA423_DOUBLE_TAP_OFFSET;
-    uint16_t rslt = BMA4_OK;
+    int8_t rslt = BMA4_OK;
 
     if (dev != NULL)
     {
@@ -1427,13 +1431,18 @@ uint16_t bma423_double_tap_get_sensitivity(uint8_t *sensitivity, struct bma4_dev
     return rslt;
 }
 
+/*! @cond DOXYGEN_SUPRESS */
+
+/* Suppressing doxygen warnings triggered for same static function names present across various sensor variant
+ * directories */
+
 /*!
  * @brief This API enables the features of the sensor.
  */
-static uint16_t feature_enable(uint8_t feature, uint8_t len, uint8_t *feature_config, struct bma4_dev *dev)
+static int8_t feature_enable(uint8_t feature, uint8_t len, uint8_t *feature_config, struct bma4_dev *dev)
 {
     uint8_t index = 0;
-    uint16_t rslt;
+    int8_t rslt;
 
     /* Enable step counter */
     if ((feature & BMA423_STEP_CNTR) > 0)
@@ -1479,10 +1488,10 @@ static uint16_t feature_enable(uint8_t feature, uint8_t len, uint8_t *feature_co
 /*!
  * @brief This API disables the features of the sensor.
  */
-static uint16_t feature_disable(uint8_t feature, uint8_t len, uint8_t *feature_config, struct bma4_dev *dev)
+static int8_t feature_disable(uint8_t feature, uint8_t len, uint8_t *feature_config, struct bma4_dev *dev)
 {
     uint8_t index = 0;
-    uint16_t rslt;
+    int8_t rslt;
 
     /* Disable step counter */
     if ((feature & BMA423_STEP_CNTR) > 0)
@@ -1616,3 +1625,64 @@ static void extract_stepcounter_parameter(struct bma423_stepcounter_settings *se
     setting->param24 = *(data_p++);
     setting->param25 = *data_p;
 }
+
+/*!
+ * @brief This API is used to get the config file major and minor information.
+ */
+int8_t bma423_get_version_config(uint16_t *config_major, uint16_t *config_minor, struct bma4_dev *dev)
+{
+    /* Initialize configuration file */
+    uint8_t feature_config[BMA423_FEATURE_SIZE] = { 0 };
+
+    /* Update index to config file version */
+    uint8_t index = BMA423_CONFIG_ID_START_ADDR;
+
+    /* Variable to define LSB */
+    uint8_t lsb = 0;
+
+    /* Variable to define MSB */
+    uint8_t msb = 0;
+
+    /* Variable to define LSB and MSB */
+    uint16_t lsb_msb = 0;
+
+    /* Result of api are returned to this variable */
+    int8_t rslt = BMA4_OK;
+
+    if ((dev != NULL) && (config_major != NULL) && (config_minor != NULL))
+    {
+        rslt = bma4_set_advance_power_save(BMA4_DISABLE, dev);
+
+        /* Wait for sensor time synchronization. Refer the data-sheet for
+         * more information
+         */
+        dev->delay_us(450, dev->intf_ptr);
+
+        if (rslt == BMA4_OK)
+        {
+            /* Get config file identification from the sensor */
+            rslt = bma4_read_regs(BMA4_FEATURE_CONFIG_ADDR, feature_config, BMA423_FEATURE_SIZE, dev);
+
+            if (rslt == BMA4_OK)
+            {
+                /* Get word to calculate config file identification */
+                lsb = feature_config[index++];
+                msb = feature_config[index++];
+
+                lsb_msb = (uint16_t)(msb << 8 | lsb);
+
+                /* Get major and minor version */
+                *config_major = BMA4_GET_BITSLICE(lsb_msb, BMA423_CONFIG_MAJOR);
+                *config_minor = BMA4_GET_BITS_POS_0(lsb, BMA423_CONFIG_MINOR);
+            }
+        }
+    }
+    else
+    {
+        rslt = BMA4_E_NULL_PTR;
+    }
+
+    return rslt;
+}
+
+/*! @endcond */

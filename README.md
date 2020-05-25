@@ -18,4 +18,3 @@ The BMA423 is an ultra-small, triaxial, low-g acceleration sensor with digital i
 For more information refer product page [Link](https://www.bosch-sensortec.com/bst/products/all_products/bma423) 
 
 ---
-#### Copyright (C) 2018 Bosch Sensortec GmbH
