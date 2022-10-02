@@ -14,6 +14,8 @@ extern "C" {
 
 #include <stdio.h>
 #include "bma4.h"
+#include "driver/i2c.h"
+#include "esp_err.h"
 
 /*!
  *  @brief Function for initialization of I2C bus

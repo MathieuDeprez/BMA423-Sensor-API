@@ -5,7 +5,9 @@
  **/
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "bma4_common.h"
+#include <string.h>
 
 /******************************************************************************/
 /*!                Static variable definition                                 */
@@ -52,8 +54,33 @@ int8_t user_spi_read(uint8_t reg_addr, uint8_t *reg_data, uint32_t length, void 
 int8_t user_i2c_read(uint8_t reg_addr, uint8_t *reg_data, uint32_t length, void *intf_ptr)
 {
 
-    /* Implement the I2C read routine according to the target machine. */
-    return 0;
+    esp_err_t espErr;
+    i2c_cmd_handle_t cmd;
+
+    cmd = i2c_cmd_link_create();
+
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (BMA4_I2C_ADDR_SECONDARY << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write_byte(cmd, reg_addr, true);
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (BMA4_I2C_ADDR_SECONDARY << 1) | I2C_MASTER_READ, true);
+    if (length > 1)
+    {
+        i2c_master_read(cmd, reg_data, length - 1, I2C_MASTER_ACK);
+    }
+    i2c_master_read_byte(cmd, reg_data + length - 1, I2C_MASTER_NACK);
+    i2c_master_stop(cmd);
+
+    espErr = i2c_master_cmd_begin(I2C_NUM_0, cmd, 10 / portTICK_PERIOD_MS);
+    i2c_cmd_link_delete(cmd);
+
+    /*printf("i2c r: addr %x, reg %x, ", BMA4_I2C_ADDR_SECONDARY, reg_addr);
+    for (uint8_t i = 0; i < length; i++)
+    {
+        printf("%02x ", reg_data[i]);
+    }
+    printf("\n");*/
+    return espErr;
 }
 
 /*!
@@ -71,9 +98,27 @@ int8_t user_spi_write(uint8_t reg_addr, const uint8_t *reg_data, uint32_t length
  */
 int8_t user_i2c_write(uint8_t reg_addr, const uint8_t *reg_data, uint32_t length, void *intf_ptr)
 {
+    esp_err_t espErr;
+    i2c_cmd_handle_t cmd;
 
-    /* Implement the I2C write routine according to the target machine. */
-    return 0;
+    cmd = i2c_cmd_link_create();
+
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (BMA4_I2C_ADDR_SECONDARY << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write_byte(cmd, reg_addr, true);
+    i2c_master_write(cmd, reg_data, length, I2C_MASTER_NACK);
+    i2c_master_stop(cmd);
+
+    espErr = i2c_master_cmd_begin(I2C_NUM_0, cmd, 10 / portTICK_PERIOD_MS);
+    i2c_cmd_link_delete(cmd);
+
+    /*printf("i2c w: addr %x, reg %x, ", BMA4_I2C_ADDR_SECONDARY, reg_addr);
+    for (uint8_t i = 0; i < length; i++)
+    {
+        printf("%02x ", reg_data[i]);
+    }
+    printf("\n");*/
+    return espErr;
 }
 
 /*!
@@ -82,7 +127,7 @@ int8_t user_i2c_write(uint8_t reg_addr, const uint8_t *reg_data, uint32_t length
  */
 void user_delay(uint32_t period_us, void *intf_ptr)
 {
-    /* Implement the delay routine according to the target machine. */
+    vTaskDelay(period_us / 1000);
 }
 
 /*!
